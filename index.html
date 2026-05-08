@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>AURA</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#8B5CF6">
@@ -2118,15 +2119,73 @@ function genPDF(){ generatePDF(); }
       el.innerHTML = '<p style="font-size:12px;color:var(--tmuted);text-align:center;padding:12px 0">Ningún render guardado aún</p>';
       return;
     }
-    el.innerHTML = savedRenders.map(function(r) {
-      const imgSrc = r.img.startsWith('data:') ? r.img : r.img;
-      return '<div style="display:flex;gap:9px;align-items:center;padding:9px;background:#fff;border:1px solid var(--cbr);border-radius:12px;margin-bottom:7px">' +
-        '<img src="' + imgSrc + '" style="width:54px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0"/>' +
-        '<div style="flex:1;min-width:0"><p style="font-size:12px;font-weight:600;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.project + '</p><p style="font-size:10px;color:var(--tmuted)">' + r.date + '</p></div>' +
-        '<span style="font-size:10px;background:var(--l100);color:var(--l600);padding:3px 8px;border-radius:6px;font-weight:600">Guardado</span>' +
+    el.innerHTML = savedRenders.map(function(r, idx) {
+      return '<div onclick="openRenderLightbox(' + idx + ')" style="display:flex;gap:9px;align-items:center;padding:9px;background:#fff;border:1px solid var(--cbr);border-radius:12px;margin-bottom:7px;cursor:pointer;transition:transform 0.15s" onmousedown="this.style.transform=\'scale(0.97)\'" onmouseup="this.style.transform=\'scale(1)\'" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'scale(1)\'">' +
+        '<img src="' + r.img + '" style="width:54px;height:42px;object-fit:cover;border-radius:8px;flex-shrink:0"/>' +
+        '<div style="flex:1;min-width:0"><p style="font-size:12px;font-weight:600;color:var(--td);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.project + '</p><p style="font-size:10px;color:var(--tmuted)">' + r.date + (r.model ? ' · ' + r.model.split('-')[0] : '') + '</p></div>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--tmuted)" stroke-width="1.8" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
       '</div>';
     }).join('');
   }
+
+  // ── LIGHTBOX para renders guardados ─────────────────────────────────────
+  window.openRenderLightbox = function(idx) {
+    if (typeof savedRenders === 'undefined' || !savedRenders[idx]) return;
+    var r = savedRenders[idx];
+    // Crear lightbox si no existe
+    var lb = document.getElementById('render-lightbox');
+    if (!lb) {
+      lb = document.createElement('div');
+      lb.id = 'render-lightbox';
+      lb.style.cssText = 'display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+      lb.onclick = function(e) { if (e.target === lb) closeLightbox(); };
+      lb.innerHTML =
+        '<button onclick="closeLightbox()" style="position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button>' +
+        '<img id="lb-img" style="max-width:100%;max-height:75dvh;object-fit:contain;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5)"/>' +
+        '<div id="lb-info" style="margin-top:14px;text-align:center;max-width:90%"></div>' +
+        '<div id="lb-actions" style="display:flex;gap:10px;margin-top:14px"></div>';
+      document.body.appendChild(lb);
+    }
+    // Fill data
+    document.getElementById('lb-img').src = r.img;
+    document.getElementById('lb-info').innerHTML =
+      '<p style="color:#fff;font-size:14px;font-weight:600">' + r.project + '</p>' +
+      '<p style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:4px">' + r.date + (r.resolution ? ' · ' + r.resolution : '') + (r.model ? ' · ' + r.model : '') + '</p>' +
+      (r.prompt ? '<p style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:6px;line-height:1.4;max-height:60px;overflow:hidden">' + r.prompt.substring(0, 150) + (r.prompt.length > 150 ? '...' : '') + '</p>' : '');
+    document.getElementById('lb-actions').innerHTML =
+      '<button onclick="lbDownload(' + idx + ')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:10px;padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        'Descargar</button>' +
+      '<button onclick="lbDelete(' + idx + ')" style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#FCA5A5;border-radius:10px;padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+        'Eliminar</button>';
+    lb.style.display = 'flex';
+  };
+
+  window.closeLightbox = function() {
+    var lb = document.getElementById('render-lightbox');
+    if (lb) lb.style.display = 'none';
+  };
+
+  window.lbDownload = function(idx) {
+    if (!savedRenders[idx]) return;
+    var link = document.createElement('a');
+    link.href = savedRenders[idx].img;
+    link.download = 'AURA_Render_' + Date.now() + '.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('Imagen descargada');
+  };
+
+  window.lbDelete = function(idx) {
+    savedRenders.splice(idx, 1);
+    renderSavedRenders();
+    closeLightbox();
+    toast('Render eliminado');
+  };
 
   // ── Expose renderBuildPrompt globally ───────────────────────────────────
   // ── PHOTO UPLOAD HANDLING ────────────────────────────────────────────────
