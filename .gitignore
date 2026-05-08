@@ -1,0 +1,11 @@
+# No subir archivos con API keys o credenciales
+AURA_App_v15-2.html
+*.bak
+cert.pem
+key.pem
+server.py
+render-section-new.html
+
+# Prototipos locales (tienen key hardcoded)
+*v15-1*
+*v15-2*
